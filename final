@@ -1,0 +1,739 @@
+package com.example.b1044108_finalexam;
+
+import android.annotation.SuppressLint;
+import android.app.DatePickerDialog;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.provider.ContactsContract;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.w3c.dom.Text;
+
+import java.util.Calendar;
+import java.util.List;
+
+public class MainActivity2 extends AppCompatActivity implements AdapterView.OnItemSelectedListener, View.OnClickListener, DatePickerDialog.OnDateSetListener , AdapterView.OnItemClickListener {
+    Spinner spn1,spn2,spn3,spn4,spn5,spn6,spn7,spn8;
+    TextView txv,txv4;
+    Calendar c = Calendar.getInstance();
+    EditText edt;
+    Button btn4, btn5, btn6;
+    ListView lv;
+    static final String DB_Name = "Data";
+    static final String TB_Name = "Ta";
+    static final int Max = 8;
+    static final String[] FROM = new String[]{"dep", "des", "date", "time", "type", "price"};
+    SQLiteDatabase db;
+    Cursor cur;
+    SimpleCursorAdapter adapter;
+    int id;
+    String choice;
+    @SuppressLint("MissingInflatedId")
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main2);
+        spn1 = (Spinner) findViewById(R.id.spinner);
+        spn2 = (Spinner) findViewById(R.id.spinner2);
+        ArrayAdapter<CharSequence> adapterFrom = ArrayAdapter.createFromResource(this,R.array.出發站, android.R.layout.simple_spinner_item);
+        adapterFrom.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spn1.setAdapter(adapterFrom);
+        ArrayAdapter<CharSequence> adapterTo = ArrayAdapter.createFromResource(this,R.array.抵達站, android.R.layout.simple_spinner_item);
+        adapterTo.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spn2.setAdapter(adapterTo);
+        spn1.setOnItemSelectedListener(this);
+        spn2.setOnItemSelectedListener(this);
+        spn4 = (Spinner) findViewById(R.id.spinner4);
+        spn5 = (Spinner) findViewById(R.id.spinner5);
+        spn6 = (Spinner) findViewById(R.id.spinner6);
+        spn7 = (Spinner) findViewById(R.id.spinner7);
+        spn8 = (Spinner) findViewById(R.id.spinner8);
+        spn3 = (Spinner) findViewById(R.id.spinner3);
+//        ArrayAdapter<CharSequence> adult = ArrayAdapter.createFromResource(this,R.array.全票, android.R.layout.simple_spinner_item);
+//        adult.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        spn4.setAdapter(adult);
+//        ArrayAdapter<CharSequence> children = ArrayAdapter.createFromResource(this,R.array.孩童票, android.R.layout.simple_spinner_item);
+//        children.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        spn5.setAdapter(children);
+//        ArrayAdapter<CharSequence> disabled = ArrayAdapter.createFromResource(this,R.array.愛心票, android.R.layout.simple_spinner_item);
+//        disabled.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        spn6.setAdapter(disabled);
+//        ArrayAdapter<CharSequence> senior = ArrayAdapter.createFromResource(this,R.array.敬老票, android.R.layout.simple_spinner_item);
+//        senior.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        spn7.setAdapter(senior);
+//        ArrayAdapter<CharSequence> student = ArrayAdapter.createFromResource(this,R.array.大學生票, android.R.layout.simple_spinner_item);
+//        student.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        spn8.setAdapter(student);
+        ArrayAdapter<CharSequence> time = ArrayAdapter.createFromResource(this,R.array.出發時間, android.R.layout.simple_spinner_item);
+        time.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spn3.setAdapter(time);
+        txv = (TextView)findViewById(R.id.textView);
+        txv.setOnClickListener(this);
+        txv4 = (TextView) findViewById(R.id.textView4);
+        edt = (EditText)findViewById(R.id.editText);
+        btn4 = (Button)findViewById(R.id.button4);
+        btn5 = (Button)findViewById(R.id.button5);
+        btn6 = (Button)findViewById(R.id.button6);
+        db = openOrCreateDatabase(DB_Name, Context.MODE_PRIVATE,null);
+
+        String createTable = "CREATE TABLE IF NOT EXISTS " + TB_Name +
+                "(_id INTEGER PRIMARY KEY AUTOINCREMENT,"+
+                "dep NVARCHAR(32),"+
+                "des NVARCHAR(32),"+
+                "date NVARCHAR(32),"+
+                "time NVARCHAR(32),"+
+                "type NVARCHAR(32),"+
+                "price VARCHAR(32))";
+        db.execSQL(createTable);
+        cur = db.rawQuery("SELECT * FROM " + TB_Name, null);
+        if(cur.getCount() == 0){
+            addData("南港", "台北" , "5/20" , "00:00" , "全票", 700);
+        }
+        adapter = new SimpleCursorAdapter(this,R.layout.layout,cur,FROM,
+                new int[]{R.id.dep,R.id.des,R.id.date,R.id.time,R.id.type,R.id.price},0);
+        lv = (ListView) findViewById(R.id.root);
+        lv.setAdapter(adapter);
+        lv.setOnItemClickListener(this);
+        requery();
+
+        }
+    public void requery(){
+        cur = db.rawQuery("SELECT * FROM " + TB_Name, null);
+        adapter.changeCursor(cur);
+        if(cur.getCount() == Max){
+            btn4.setEnabled(false);
+        }else{
+            btn4.setEnabled(true);
+        }
+        btn5.setEnabled(false);
+        btn6.setEnabled(false);
+    }
+    public void addData(String dep, String des, String date, String time, String type, int price){
+        ContentValues cv = new ContentValues(6);
+        cv.put(FROM[0], dep);
+        cv.put(FROM[1], des);
+        cv.put(FROM[2], date);
+        cv.put(FROM[3], time);
+        cv.put(FROM[4], type);
+        cv.put(FROM[5], price);
+        db.insert(TB_Name,null,cv);
+    }
+    public void updata(String dep, String des, String date, String time, String type, int price){
+        ContentValues cv = new ContentValues(6);
+        cv.put(FROM[0], dep);
+        cv.put(FROM[1], des);
+        cv.put(FROM[2], date);
+        cv.put(FROM[3], time);
+        cv.put(FROM[4], type);
+        cv.put(FROM[5], price);
+        db.update(TB_Name,cv,"_id="+ id, null);
+    }
+    public void deletedata(){
+        requery();
+        db.delete(TB_Name,"_id="+ id, null);
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+            calculateTicketPrice();
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> adapterView) {
+
+    }
+    public  void calculateTicketPrice(){
+        spn1 = (Spinner) findViewById(R.id.spinner);
+        spn2 = (Spinner) findViewById(R.id.spinner2);
+        spn4 = (Spinner) findViewById(R.id.spinner4);
+        spn5 = (Spinner) findViewById(R.id.spinner5);
+        spn6 = (Spinner) findViewById(R.id.spinner6);
+        spn7 = (Spinner) findViewById(R.id.spinner7);
+        spn8 = (Spinner) findViewById(R.id.spinner8);
+        String dep = spn1.getSelectedItem().toString();
+        String des = spn2.getSelectedItem().toString();
+        double ticketPrice = 0;
+        switch(dep){
+            case "南港":
+                switch (des){
+                    case "台北":
+                        ticketPrice = 40;
+                        break;
+                    case "板橋":
+                        ticketPrice = 70;
+                        break;
+                    case "桃園":
+                        ticketPrice = 200;
+                        break;
+                    case "新竹":
+                        ticketPrice = 330;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 480;
+                        break;
+                    case "台中":
+                        ticketPrice = 750;
+                        break;
+                    case "彰化":
+                        ticketPrice = 870;
+                        break;
+                    case "雲林":
+                        ticketPrice = 970;
+                    case "嘉義":
+                        ticketPrice = 1120;
+                        break;
+                    case "台南":
+                        ticketPrice = 1390;
+                        break;
+                    case "左營":
+                        ticketPrice = 1530;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "台北":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 260;
+                        break;
+                    case "板橋":
+                        ticketPrice = 40;
+                        break;
+                    case "桃園":
+                        ticketPrice = 160;
+                        break;
+                    case "新竹":
+                        ticketPrice = 290;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 430;
+                        break;
+                    case "台中":
+                        ticketPrice = 700;
+                        break;
+                    case "彰化":
+                        ticketPrice = 820;
+                        break;
+                    case "雲林":
+                        ticketPrice = 930;
+                    case "嘉義":
+                        ticketPrice = 1080;
+                        break;
+                    case "台南":
+                        ticketPrice = 1350;
+                        break;
+                    case "左營":
+                        ticketPrice = 1490;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "板橋":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 310;
+                        break;
+                    case "台北":
+                        ticketPrice = 260;
+                        break;
+                    case "桃園":
+                        ticketPrice = 130;
+                        break;
+                    case "新竹":
+                        ticketPrice = 260;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 400;
+                        break;
+                    case "台中":
+                        ticketPrice = 670;
+                        break;
+                    case "彰化":
+                        ticketPrice = 790;
+                        break;
+                    case "雲林":
+                        ticketPrice = 900;
+                    case "嘉義":
+                        ticketPrice = 1050;
+                        break;
+                    case "台南":
+                        ticketPrice = 1320;
+                        break;
+                    case "左營":
+                        ticketPrice = 1460;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "桃園":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 500;
+                        break;
+                    case "台北":
+                        ticketPrice = 440;
+                        break;
+                    case "板橋":
+                        ticketPrice = 400;
+                        break;
+                    case "新竹":
+                        ticketPrice = 130;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 280;
+                        break;
+                    case "台中":
+                        ticketPrice = 540;
+                        break;
+                    case "彰化":
+                        ticketPrice = 670;
+                        break;
+                    case "雲林":
+                        ticketPrice = 780;
+                    case "嘉義":
+                        ticketPrice = 920;
+                        break;
+                    case "台南":
+                        ticketPrice = 1190;
+                        break;
+                    case "左營":
+                        ticketPrice = 1330;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "新竹":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 700;
+                        break;
+                    case "台北":
+                        ticketPrice = 640;
+                        break;
+                    case "板橋":
+                        ticketPrice = 590;
+                        break;
+                    case "桃園":
+                        ticketPrice = 400;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 140;
+                        break;
+                    case "台中":
+                        ticketPrice = 410;
+                        break;
+                    case "彰化":
+                        ticketPrice = 540;
+                        break;
+                    case "雲林":
+                        ticketPrice = 640;
+                    case "嘉義":
+                        ticketPrice = 790;
+                        break;
+                    case "台南":
+                        ticketPrice = 1060;
+                        break;
+                    case "左營":
+                        ticketPrice = 1200;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "苗栗":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 920;
+                        break;
+                    case "台北":
+                        ticketPrice = 850;
+                        break;
+                    case "板橋":
+                        ticketPrice = 800;
+                        break;
+                    case "桃園":
+                        ticketPrice = 620;
+                        break;
+                    case "新竹":
+                        ticketPrice = 410;
+                        break;
+                    case "台中":
+                        ticketPrice = 270;
+                        break;
+                    case "彰化":
+                        ticketPrice = 390;
+                        break;
+                    case "雲林":
+                        ticketPrice = 500;
+                    case "嘉義":
+                        ticketPrice = 640;
+                        break;
+                    case "台南":
+                        ticketPrice = 920;
+                        break;
+                    case "左營":
+                        ticketPrice = 1060;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "台中":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 1330;
+                        break;
+                    case "台北":
+                        ticketPrice = 1250;
+                        break;
+                    case "板橋":
+                        ticketPrice = 1210;
+                        break;
+                    case "桃園":
+                        ticketPrice = 1010;
+                        break;
+                    case "新竹":
+                        ticketPrice = 820;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 610;
+                        break;
+                    case "彰化":
+                        ticketPrice = 130;
+                        break;
+                    case "雲林":
+                        ticketPrice = 230;
+                    case "嘉義":
+                        ticketPrice = 380;
+                        break;
+                    case "台南":
+                        ticketPrice = 650;
+                        break;
+                    case "左營":
+                        ticketPrice = 790;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "彰化":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 1510;
+                        break;
+                    case "台北":
+                        ticketPrice = 1430;
+                        break;
+                    case "板橋":
+                        ticketPrice = 1390;
+                        break;
+                    case "桃園":
+                        ticketPrice = 1210;
+                        break;
+                    case "新竹":
+                        ticketPrice = 1010;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 790;
+                        break;
+                    case "台中":
+                        ticketPrice = 400;
+                        break;
+                    case "雲林":
+                        ticketPrice = 110;
+                    case "嘉義":
+                        ticketPrice = 250;
+                        break;
+                    case "台南":
+                        ticketPrice = 530;
+                        break;
+                    case "左營":
+                        ticketPrice = 670;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "雲林":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 1660;
+                        break;
+                    case "台北":
+                        ticketPrice = 1600;
+                        break;
+                    case "板橋":
+                        ticketPrice = 1550;
+                        break;
+                    case "桃園":
+                        ticketPrice = 1370;
+                        break;
+                    case "新竹":
+                        ticketPrice = 1160;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 950;
+                        break;
+                    case "台中":
+                        ticketPrice = 550;
+                        break;
+                    case "彰化":
+                        ticketPrice = 370;
+                    case "嘉義":
+                        ticketPrice = 150;
+                        break;
+                    case "台南":
+                        ticketPrice = 420;
+                        break;
+                    case "左營":
+                        ticketPrice = 560;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "嘉義":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 1880;
+                        break;
+                    case "台北":
+                        ticketPrice = 1820;
+                        break;
+                    case "板橋":
+                        ticketPrice = 1780;
+                        break;
+                    case "桃園":
+                        ticketPrice = 1580;
+                        break;
+                    case "新竹":
+                        ticketPrice = 1390;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 1160;
+                        break;
+                    case "台中":
+                        ticketPrice = 770;
+                        break;
+                    case "彰化":
+                        ticketPrice = 580;
+                    case "雲林":
+                        ticketPrice = 430;
+                        break;
+                    case "台南":
+                        ticketPrice = 280;
+                        break;
+                    case "左營":
+                        ticketPrice = 410;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "台南":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 2290;
+                        break;
+                    case "台北":
+                        ticketPrice = 2230;
+                        break;
+                    case "板橋":
+                        ticketPrice = 2180;
+                        break;
+                    case "桃園":
+                        ticketPrice = 1990;
+                        break;
+                    case "新竹":
+                        ticketPrice = 1790;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 1580;
+                        break;
+                    case "台中":
+                        ticketPrice = 1180;
+                        break;
+                    case "彰化":
+                        ticketPrice = 1000;
+                    case "雲林":
+                        ticketPrice = 830;
+                        break;
+                    case "嘉義":
+                        ticketPrice = 620;
+                        break;
+                    case "左營":
+                        ticketPrice = 140;
+                        break;
+                }
+                break;
+        }
+        switch (dep){
+            case "左營":
+                switch (des){
+                    case "南港":
+                        ticketPrice = 2500;
+                        break;
+                    case "台北":
+                        ticketPrice = 2440;
+                        break;
+                    case "板橋":
+                        ticketPrice = 2390;
+                        break;
+                    case "桃園":
+                        ticketPrice = 2200;
+                        break;
+                    case "新竹":
+                        ticketPrice = 2000;
+                        break;
+                    case "苗栗":
+                        ticketPrice = 1790;
+                        break;
+                    case "台中":
+                        ticketPrice = 1390;
+                        break;
+                    case "彰化":
+                        ticketPrice = 1210;
+                    case "雲林":
+                        ticketPrice = 1040;
+                        break;
+                    case "嘉義":
+                        ticketPrice = 820;
+                        break;
+                    case "台南":
+                        ticketPrice = 410;
+                        break;
+                }
+                break;
+        }
+        int adult = Integer.parseInt(spn4.getSelectedItem().toString());
+        int children = Integer.parseInt(spn5.getSelectedItem().toString());
+        int disabled = Integer.parseInt(spn6.getSelectedItem().toString());
+        int senior = Integer.parseInt(spn7.getSelectedItem().toString());
+        int student = Integer.parseInt(spn8.getSelectedItem().toString());
+        int adult_dis = 1;
+        double children_dis =  0.5;
+        double disable_dis =  0.5;
+        double senior_dis = 0.6;
+        double student_dis = 0.8;
+        if(adult > 0){
+            ticketPrice = ticketPrice * adult * adult_dis;
+        }if(children > 0){
+            ticketPrice = ticketPrice * children * children_dis;
+        }if(disabled > 0){
+            ticketPrice = ticketPrice * disabled * disable_dis;
+        }if(senior > 0){
+            ticketPrice = ticketPrice * senior * senior_dis;
+        }if(student > 0){
+            ticketPrice = ticketPrice * student * student_dis;
+        }
+        txv4.setText("" + ticketPrice);
+        }
+
+    @Override
+    public void onDateSet(DatePicker datePicker, int i, int m, int d) {
+        txv.setText((m+1) + "月" + d + "日");
+    }
+
+    @Override
+    public void onClick(View view) {
+        if( view == txv){
+            new DatePickerDialog(this,this,c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show();
+        }
+        if(view == btn4){
+            if(edt.getText().toString().equals("B1044108")){
+                switch (view.getId()) {
+                    case R.id.button4:
+                        String selectedItem1 = spn1.getSelectedItem().toString();
+                        String selectedItem2 = spn2.getSelectedItem().toString();
+                        String selectedDate = txv.getText().toString();
+                        String selectedItem3 = spn3.getSelectedItem().toString();
+
+
+                        Toast.makeText(this, selectedItem1 + " " + selectedItem2 + " " + selectedDate + " " + selectedItem3, Toast.LENGTH_SHORT).show();
+
+
+                        ContentValues values = new ContentValues();
+                        values.put("dep", selectedItem1);
+                        values.put("des", selectedItem2);
+                        values.put("date", selectedDate);
+                        values.put("time", selectedItem3);
+                        db.insert("Ta", null, values);
+                        adapter.notifyDataSetChanged();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else Toast.makeText(this, "驗證碼不相符", Toast.LENGTH_SHORT).show();
+        }
+
+
+        String depstr = spn1.getSelectedItem().toString().trim();
+        String desstr = spn2.getSelectedItem().toString().trim();
+        String datestr = txv.getText().toString().trim();
+        String timestr = spn3.getSelectedItem().toString().trim();
+        String type = spn4.getSelectedItem().toString().trim();
+        int price = Integer.parseInt(txv4.getText().toString());
+        if(id == -1 && view.getId() != R.id.button4) {
+            Toast.makeText(this, "請選擇要修改或刪除的項目", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if(depstr.length() == 0 || desstr.length() == 0 || datestr.length() == 0 || timestr.length() == 0 || type.length() == 0 ){
+            return;
+        }else{
+            if(view.getId() == R.id.button4){
+                addData(depstr,desstr,datestr,timestr,type,price);
+            } else if (view.getId() == R.id.button5) {
+                updata(depstr,desstr,datestr,timestr,type,price);
+            }else{
+                deletedata();
+            }
+        }
+        requery();
+
+
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+//        cur.moveToPosition(i);
+//        id = cur.getInt(0);
+//        spn1.setSelection(getSpinnerIndex(spn1, cur.getString(cur.getColumnIndexOrThrow("dep"))));
+//        spn2.setSelection(getSpinnerIndex(spn2, cur.getString(cur.getColumnIndexOrThrow("des"))));
+////        TextView txv = (TextView) findViewById(R.id.textView);
+////        txv.setText(cur.getString(cur.getColumnIndexOrThrow("date")));
+//        spn3.setSelection(getSpinnerIndex(spn3, cur.getString(cur.getColumnIndexOrThrow("time"))));
+//        adapter.notifyDataSetChanged();
+//        btn5.setEnabled(true);
+//        btn6.setEnabled(true);
+
+    }
+//    private int getSpinnerIndex(Spinner spinner, String value) {
+//        for (int i = 0; i < spinner.getCount(); i++) {
+//            if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(value)) {
+//                return i;
+//            }
+//        }
+//        return 0;
+//}
+}
